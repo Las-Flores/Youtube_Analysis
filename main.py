@@ -15,20 +15,18 @@ conn = mysql.connector.connect(
     host=os.getenv('host'),
     user=os.getenv('user'),
     password=os.getenv('password'),
-    database=os.getenv('database')
-)
+    database=os.getenv('database'))
 cursor = conn.cursor()
-
 #Prepare the youtube API
 youtube = build('youtube', 'v3', developerKey=os.getenv("API_KEY"))
 
 #What queries does the API has to go through
-queries = ['data science', 'data analysis', 'data engineering', 'data scientist', 'data analyst', 'data engineer', 'machine learning']
-#If the videos should be searched by popularity, relevance or 
-order = 'relevance' #viewCount
+#If the videos should be searched by popularity, relevance or viewCount
 #How many videos per query are going to be scraped
-amount = 1
 #How old (in days) the videos should maximally be
+queries = ['data science', 'data analysis', 'data engineering', 'data scientist', 'data analyst', 'data engineer', 'machine learning']
+order = 'relevance' 
+amount = 10
 publishedAfter = 7
 videos = scraping_data(youtube=youtube, queries=queries, order=order, amount=amount, publishedAfter=publishedAfter, cursor=cursor, conn=conn)
 

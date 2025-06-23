@@ -172,20 +172,24 @@ def scraping_data(youtube, queries, order, amount, publishedAfter, cursor, conn)
         print(f"• Inserted channels: {inserted_channels}")
         print(f"• Inserted comments: {inserted_comments}")
         conn.commit()
-    return videos, cursor, conn
+    return videos
+
 def install_thumbnails(videos):
     folder = "thumbnails"
     for video in videos:
-        response = requests.get(video['thumbnail_url'])
+        thumbnail_url = video['thumbnail_url']
+        response = requests.get(thumbnail_url)
         if response.status_code == 200:
             filename = f"{video['thumbnail_url'].replace('https://i.ytimg.com/vi/', '').replace('/hqdefault.jpg', '')}.jpg"
             with open(f'{folder}/{filename}', 'wb') as file:
                 file.write(response.content)
+                
 def read_text_from_thumbnails(cursor, conn):
     reader = easyocr.Reader(['en'], gpu=False, verbose=False)
     dfs = []
     for img in os.listdir('thumbnails'):
-        img_url = f'https://i.ytimg.com/vi/{img.replace('.jpg', '')}/hqdefault.jpg'
+        video_id = os.path.splitext(img)[0]
+        img_url = f'https://i.ytimg.com/vi/{video_id}/hqdefault.jpg'
         img_path = f'thumbnails/{img}'
         cursor.execute("""
             SELECT id FROM videos WHERE thumbnail_url = %s
@@ -193,18 +197,22 @@ def read_text_from_thumbnails(cursor, conn):
         img_id = cursor.fetchone()
         try:
             img = Image.open(img_path)
-            img.verify()
-            img = Image.open(img_path)  
+            img_copy = img.copy()
+            img_copy.verify()
             result = reader.readtext(np.array(img))
             result = [r for r in result if r[2] >= 0.5]
             img_df = pd.DataFrame(result, columns=['bbox', 'text', 'conf'])
             img_df['img_name'] = img
             img_df['img_url'] = img_url
-            img_df['video_id'] = img_id
+            img_df['video_id'] = img_id[0] if img_id else None
             dfs.append(img_df)
         except (IOError, SyntaxError, FileNotFoundError) as e:
             print(f"Skipping corrupted or missing image: {img_path} - {e}")
-    thumbnails = pd.concat(dfs)
+    if dfs:
+        thumbnails = pd.concat(dfs, ignore_index=True)
+    else:
+        thumbnails = pd.DataFrame()  # or handle accordingly
+
 
     for _, row in thumbnails.iterrows():
         cursor.execute("""
