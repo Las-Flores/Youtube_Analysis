@@ -6,3 +6,4 @@ Pillow>=10.0.0
 python-dotenv>=1.0.0
 numpy==2.3.0
 isodate>=0.6.1
+mysql-connector-python==9.3.0
