@@ -2,25 +2,66 @@ name: Weekly Job
 
 on:
   schedule:
-    - cron: '50 18 * * *'
+    - cron: '50 18 * * *'  
+  workflow_dispatch:  
+  push:
+    branches: [ main ]  
 
 jobs:
   run-code:
     runs-on: ubuntu-latest
+    
+    timeout-minutes: 30
+    
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
-
+        uses: actions/checkout@v4  # Updated to latest version
+        
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.x'
-
+          python-version: '3.11'  # Specify exact version for consistency
+          
+      - name: Cache pip dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+            
       - name: Install dependencies
         run: |
+          python -m pip install --upgrade pip
           pip install -r requirements.txt
-
+          
       - name: Run the code
+        env:
+          # Database credentials from repository secrets
+          host: ${{ secrets.DB_HOST }}
+          user: ${{ secrets.DB_USER }}
+          password: ${{ secrets.DB_PASSWORD }}
+          database: ${{ secrets.DB_NAME }}
+          
+          # Optional: Add other environment variables you might need
+          # API_KEY: ${{ secrets.API_KEY }}
+          # YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          
         run: |
           python main.py
+          
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: error-logs
+          path: |
+            *.log
+            logs/
+          retention-days: 7
+          
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "::error::Job failed. Check the logs for details."
           
