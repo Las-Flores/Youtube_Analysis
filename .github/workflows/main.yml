@@ -1,0 +1,19 @@
+name: Weekly Job
+
+on:
+  schedule:
+    - cron: '50 18 * * *'  # Fixed: Added missing day of week (runs daily at 6:50 PM)
+  workflow_dispatch:  # Allow manual triggering
+  push:
+    branches: [ main ]  # Optional: run on push to main for testing
+
+jobs:
+  run-code:
+    runs-on: ubuntu-latest
+    steps:
+    - run: mkdir -p Desktop/thumbnails
+    - run: echo hello > Desktop/thumbnails
+    - uses: actions/upload-artifact@v4
+      with:
+        name: thumbnails
+        path: Desktop/thumbnails
