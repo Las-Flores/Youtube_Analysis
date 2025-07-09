@@ -15,15 +15,15 @@ jobs:
     timeout-minutes: 30
     
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4  # Updated to latest version
+      
       - name: Download thumbnails
         uses: actions/download-artifact@v4
         with:
           name: thumbnails
           path: thumbnails/
 
-      - name: Checkout repository
-        uses: actions/checkout@v4  # Updated to latest version
-        
       - name: Set up Python
         uses: actions/setup-python@v5  # Updated to latest version
         with:
