@@ -2,32 +2,34 @@ name: Weekly Job
 
 on:
   schedule:
-    - cron: '50 18 * * *'  # Fixed: Added missing day of week (runs daily at 6:50 PM)
-  workflow_dispatch:  # Allow manual triggering
+    - cron: '50 18 * * *'
+  workflow_dispatch:
   push:
-    branches: [ main ]  # Optional: run on push to main for testing
+    branches: [ main ]
 
 jobs:
   run-code:
     runs-on: ubuntu-latest
-    
-    # Set timeout to prevent jobs from running too long
     timeout-minutes: 30
     
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4  # Updated to latest version
-      
-      - name: Download thumbnails
+        uses: actions/checkout@v4
+        
+      - name: Initialize thumbnails directory
+        run: mkdir -p thumbnails
+        
+      - name: Download thumbnails (if exists)
         uses: actions/download-artifact@v4
         with:
           name: thumbnails
           path: thumbnails/
+        continue-on-error: true
 
       - name: Set up Python
-        uses: actions/setup-python@v5  # Updated to latest version
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.11'  # Specify exact version for consistency
+          python-version: '3.11'
           
       - name: Cache pip dependencies
         uses: actions/cache@v4
@@ -44,13 +46,11 @@ jobs:
           
       - name: Run the code
         env:
-          # Database credentials from repository secrets
           host: ${{ secrets.DB_HOST }}
           user: ${{ secrets.DB_USER }}
           password: ${{ secrets.DB_PASSWORD }}
           database: ${{ secrets.DB_NAME }}
           API_KEY: ${{ secrets.API_KEY }}
-          
         run: |
           python main.py
           
@@ -75,3 +75,4 @@ jobs:
         with:
           name: thumbnails
           path: thumbnails/
+          retention-days: 7  # Set appropriate retention
