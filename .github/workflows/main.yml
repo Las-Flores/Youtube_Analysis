@@ -11,8 +11,8 @@ jobs:
   run-code:
     runs-on: ubuntu-latest
     steps:
-    - run: echo hello > Desktop/thumbnails
+    - run: echo hello > Desktop/YoutubeScraper/thumbnails
     - uses: actions/upload-artifact@v4
       with:
         name: thumbnails
-        path: Desktop/thumbnails
+        path: Desktop/YoutubeScraper/thumbnails
