@@ -117,7 +117,7 @@ def scraping_data(youtube, queries, order, amount, publishedAfter, cursor, conn)
 
         for video in videos:
             # Check if channel already exists
-            cursor.execute("SELECT id FROM Channels WHERE channel_name = %s", (video['channel'],))
+            cursor.execute("SELECT id FROM channels WHERE channel_name = %s", (video['channel'],))
             result = cursor.fetchone()
             
             if cursor.fetchone() is None:
@@ -125,17 +125,17 @@ def scraping_data(youtube, queries, order, amount, publishedAfter, cursor, conn)
                     channel_id = result[0]
                 else:
                     cursor.execute("""
-                        INSERT INTO Channels (channel_name, subscriber_count, country)
+                        INSERT INTO channels (channel_name, subscriber_count, country)
                         VALUES (%s, %s, %s)
                     """, (video['channel'], safe_int(video['subscriber_count']), video['country']))
                     channel_id = cursor.lastrowid
                     inserted_channels += 1
-            
-                cursor.execute("SELECT id FROM Videos WHERE video_url = %s", (video['url'],))
+
+                cursor.execute("SELECT id FROM videos WHERE video_url = %s", (video['url'],))
                 if cursor.fetchone() is None:
                     # Insert video
                     cursor.execute("""
-                        INSERT INTO Videos (
+                        INSERT INTO videos (
                             channel_id, title, description, day, hour, duration,
                             like_count, view_count, comment_count, video_url, thumbnail_url, query
                         ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -156,14 +156,14 @@ def scraping_data(youtube, queries, order, amount, publishedAfter, cursor, conn)
 
                 video_id = cursor.lastrowid
                 inserted_videos += 1
-            
-            cursor.execute("SELECT id FROM Videos WHERE video_url = %s", (video['url'],))
+
+            cursor.execute("SELECT id FROM videos WHERE video_url = %s", (video['url'],))
             video_row = cursor.fetchone()
             if video_row:
                 video_id = video_row[0]
                 for comment in video['top_comments']:
                     cursor.execute("""
-                        INSERT INTO Comments (video_id, comment)
+                        INSERT INTO comments (video_id, comment)
                         VALUES (%s, %s)
                     """, (video_id, comment))
                     inserted_comments += 1
@@ -177,10 +177,10 @@ def scraping_data(youtube, queries, order, amount, publishedAfter, cursor, conn)
 def install_thumbnails(videos):
     folder = "thumbnails"
     for video in videos:
-        thumbnail_url = video['thumbnail_url']
+        thumbnail_url = video[11]
         response = requests.get(thumbnail_url)
         if response.status_code == 200:
-            filename = f"{video['thumbnail_url'].replace('https://i.ytimg.com/vi/', '').replace('/hqdefault.jpg', '')}.jpg"
+            filename = f"{video[11].replace('https://i.ytimg.com/vi/', '').replace('/hqdefault.jpg', '').replace('/hqdefault_live.jpg', '')}.jpg"
             with open(f'{folder}/{filename}', 'wb') as file:
                 file.write(response.content)
                 
