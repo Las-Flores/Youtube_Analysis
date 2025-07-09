@@ -15,6 +15,12 @@ jobs:
     timeout-minutes: 30
     
     steps:
+      - name: Download thumbnails
+        uses: actions/download-artifact@v4
+        with:
+          name: thumbnails
+          path: thumbnails/
+
       - name: Checkout repository
         uses: actions/checkout@v4  # Updated to latest version
         
@@ -43,8 +49,6 @@ jobs:
           user: ${{ secrets.DB_USER }}
           password: ${{ secrets.DB_PASSWORD }}
           database: ${{ secrets.DB_NAME }}
-          
-          # Optional: Add other environment variables you might need
           API_KEY: ${{ secrets.API_KEY }}
           
         run: |
@@ -65,3 +69,9 @@ jobs:
         if: failure()
         run: |
           echo "::error::Job failed. Check the logs for details."
+      
+      - name: Upload thumbnails
+        uses: actions/upload-artifact@v4
+        with:
+          name: thumbnails
+          path: thumbnails/
