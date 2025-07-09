@@ -177,10 +177,10 @@ def scraping_data(youtube, queries, order, amount, publishedAfter, cursor, conn)
 def install_thumbnails(videos):
     folder = "thumbnails"
     for video in videos:
-        thumbnail_url = video[11]
+        thumbnail_url = video['thumbnail_url']
         response = requests.get(thumbnail_url)
         if response.status_code == 200:
-            filename = f"{video[11].replace('https://i.ytimg.com/vi/', '').replace('/hqdefault.jpg', '').replace('/hqdefault_live.jpg', '')}.jpg"
+            filename = f"{video['thumbnail_url'].replace('https://i.ytimg.com/vi/', '').replace('/hqdefault.jpg', '').replace('/hqdefault_live.jpg', '')}.jpg"
             with open(f'{folder}/{filename}', 'wb') as file:
                 file.write(response.content)
                 
