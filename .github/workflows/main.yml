@@ -11,7 +11,6 @@ jobs:
   run-code:
     runs-on: ubuntu-latest
     steps:
-    - run: mkdir -p Desktop/thumbnails
     - run: echo hello > Desktop/thumbnails
     - uses: actions/upload-artifact@v4
       with:
