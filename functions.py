@@ -8,6 +8,7 @@ import easyocr
 from PIL import Image
 import numpy as np
 import pandas as pd
+import json
 
 def scraping_data(youtube, queries, order, amount, publishedAfter, cursor, conn):
     videos = []
@@ -222,10 +223,15 @@ def read_text_from_thumbnails(cursor, conn):
     else:
         thumbnails = pd.DataFrame()  # or handle accordingly
 
-
     for _, row in thumbnails.iterrows():
-        cursor.execute("""
-            INSERT INTO thumbnail_text (video_id, img_url, text, coordinates, confidence)
-            VALUES (%s, %s, %s, %s, %s)
-        """, (row['video_id'], row['img_url'], row['text'], str(row['bbox']), row['conf']))
-        conn.commit()
+        try:
+            bbox_json = json.dumps(row['bbox'].tolist() if hasattr(row['bbox'], 'tolist') else row['bbox'])
+            cursor.execute("""
+                INSERT INTO thumbnail_text (video_id, img_url, text, coordinates, confidence)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (row['video_id'], row['img_url'], row['text'], bbox_json, row['conf']))
+        except Exception as e:
+            print(f"Error inserting row: {e}")
+            print(f"Problematic bbox: {row['bbox']}")
+        continue 
+    conn.commit()
