@@ -225,7 +225,8 @@ def read_text_from_thumbnails(cursor, conn):
 
     for _, row in thumbnails.iterrows():
         try:
-            bbox_json = json.dumps(row['bbox'].tolist() if hasattr(row['bbox'], 'tolist') else row['bbox'])
+            bbox_array = np.array(row['bbox'])
+            bbox_json = json.dumps(bbox_array.tolist())            
             cursor.execute("""
                 INSERT INTO thumbnail_text (video_id, img_url, text, coordinates, confidence)
                 VALUES (%s, %s, %s, %s, %s)
