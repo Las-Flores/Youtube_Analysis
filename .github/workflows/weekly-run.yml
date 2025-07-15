@@ -11,26 +11,16 @@ jobs:
   run-code:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        
-      - name: Initialize thumbnails directory
-        run: mkdir -p thumbnails
-        
-      - name: Download thumbnails (if exists)
-        uses: actions/download-artifact@v4
-        with:
-          name: thumbnails
-          path: thumbnails/
-        continue-on-error: true
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          
+
       - name: Cache pip dependencies
         uses: actions/cache@v4
         with:
@@ -38,12 +28,12 @@ jobs:
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
-            
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          
+
       - name: Run the code
         env:
           host: ${{ secrets.DB_HOST }}
@@ -53,7 +43,7 @@ jobs:
           API_KEY: ${{ secrets.API_KEY }}
         run: |
           python main.py
-          
+
       - name: Upload logs on failure
         if: failure()
         uses: actions/upload-artifact@v4
@@ -64,15 +54,8 @@ jobs:
             logs/
           retention-days: 7
           if-no-files-found: ignore
-          
+
       - name: Notify on failure
         if: failure()
         run: |
           echo "::error::Job failed. Check the logs for details."
-      
-      - name: Upload thumbnails
-        uses: actions/upload-artifact@v4
-        with:
-          name: thumbnails
-          path: thumbnails/
-          retention-days: 7  # Set appropriate retention
