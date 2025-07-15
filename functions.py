@@ -212,7 +212,7 @@ def read_text_from_thumbnails(cursor, conn):
             result = reader.readtext(np.array(img))
             result = [r for r in result if r[2] >= 0.5]
             img_df = pd.DataFrame(result, columns=['bbox', 'text', 'conf'])
-            img_df['img_name'] = img
+            img_df['img_name'] = os.path.basename(img_path)
             img_df['img_url'] = img_url
             img_df['video_id'] = img_id[0] if img_id else None
             dfs.append(img_df)
