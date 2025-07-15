@@ -4,7 +4,6 @@ import warnings
 warnings.filterwarnings("ignore", message="'pin_memory' argument is set as true")
 from dotenv import load_dotenv
 import mysql.connector
-
 from functions import scraping_data, install_thumbnails, read_text_from_thumbnails
 
 #Load sensitive information from a .env file
@@ -17,6 +16,7 @@ conn = mysql.connector.connect(
     password=os.getenv('password'),
     database=os.getenv('database'))
 cursor = conn.cursor()
+
 #Prepare the youtube API
 youtube = build('youtube', 'v3', developerKey=os.getenv("API_KEY"))
 
@@ -27,7 +27,7 @@ youtube = build('youtube', 'v3', developerKey=os.getenv("API_KEY"))
 queries = ['data science', 'data analysis', 'data engineering', 'data scientist', 'data analyst', 'data engineer', 'machine learning']
 order = 'relevance' 
 amount = 10
-publishedAfter = 7
+publishedAfter = 7 
 videos = scraping_data(youtube=youtube, queries=queries, order=order, amount=amount, publishedAfter=publishedAfter, cursor=cursor, conn=conn)
 
 install_thumbnails(videos=videos)
