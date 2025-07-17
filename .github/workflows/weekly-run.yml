@@ -8,17 +8,19 @@ on:
     branches: [ main ]
 
 jobs:
-  permissions:
-    contents: write
   run-code:
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    permissions:
+      contents: write  # Required for committing thumbnails back to repo
     env:
       THUMBNAIL_DIR: 'thumbnails'
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Required to access commit history for thumbnails
 
       - name: Set up Python
         uses: actions/setup-python@v5
