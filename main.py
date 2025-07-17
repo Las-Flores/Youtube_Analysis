@@ -27,7 +27,7 @@ youtube = build('youtube', 'v3', developerKey=os.getenv("API_KEY"))
 queries = ['data science', 'data analysis', 'data engineering', 'data scientist', 'data analyst', 'data engineer', 'machine learning']
 order = 'relevance' 
 amount = 50
-publishedAfter = 7 
+publishedAfter = 30 
 videos = scraping_data(youtube=youtube, queries=queries, order=order, amount=amount, publishedAfter=publishedAfter, cursor=cursor, conn=conn)
 
 install_thumbnails(videos=videos)
