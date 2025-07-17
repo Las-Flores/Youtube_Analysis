@@ -175,25 +175,68 @@ def scraping_data(youtube, queries, order, amount, publishedAfter, cursor, conn)
         conn.commit()
     return videos
 
-def install_thumbnails(videos):
+def install_thumbnails(videos, max_retries=3):
     folder = "thumbnails"
     os.makedirs(folder, exist_ok=True)
     
+    failed_downloads = []
+    
     for video in videos:
         thumbnail_url = video['thumbnail_url']
-        
-        filename = f"{video['thumbnail_url'].replace('https://i.ytimg.com/vi/', '').replace('/hqdefault.jpg', '').replace('/hqdefault_live.jpg', '')}.jpg"
+        video_id = thumbnail_url.replace('https://i.ytimg.com/vi/', '').split('/')[0]
+        filename = f"{video_id}.jpg"
         filepath = os.path.join(folder, filename)
         
+        # Skip if already exists and is valid
         if os.path.exists(filepath):
-            print(f"Skipping {filename} (already exists)")
-            continue
+            try:
+                # Verify the image isn't corrupted
+                with Image.open(filepath) as img:
+                    img.verify()
+                print(f"Skipping {filename} (valid file exists)")
+                continue
+            except (IOError, SyntaxError):
+                print(f"Existing file corrupted, redownloading: {filename}")
+                os.remove(filepath)
         
-        response = requests.get(thumbnail_url)
-        if response.status_code == 200:
-            with open(filepath, 'wb') as file:
-                file.write(response.content)
+        # Download with retries
+        for attempt in range(max_retries):
+            try:
+                response = requests.get(
+                    thumbnail_url,
+                    headers={'User-Agent': 'Mozilla/5.0'},
+                    timeout=10
+                )
+                response.raise_for_status()  # Raises exception for 4XX/5XX status
                 
+                # Verify the downloaded content is actually an image
+                try:
+                    with Image.open(BytesIO(response.content)) as img:
+                        img.verify()
+                    
+                    # Save the file
+                    with open(filepath, 'wb') as file:
+                        file.write(response.content)
+                    print(f"Successfully downloaded: {filename}")
+                    break
+                except (IOError, SyntaxError) as img_error:
+                    print(f"Downloaded invalid image (attempt {attempt+1}): {img_error}")
+                    if attempt == max_retries - 1:
+                        failed_downloads.append(video_id)
+            except (requests.RequestException, Exception) as e:
+                print(f"Download failed (attempt {attempt+1}) for {filename}: {e}")
+                if attempt == max_retries - 1:
+                    failed_downloads.append(video_id)
+                time.sleep(1)  # Brief pause before retry
+    
+    # Report failures
+    if failed_downloads:
+        print(f"\nFailed to download {len(failed_downloads)} thumbnails:")
+        for vid in failed_downloads:
+            print(f"- Video ID: {vid}")
+    
+    return failed_downloads
+    
 def read_text_from_thumbnails(cursor, conn):
     reader = easyocr.Reader(['en'], gpu=False, verbose=False)
     dfs = []
@@ -224,7 +267,7 @@ def read_text_from_thumbnails(cursor, conn):
                     INSERT INTO thumbnail_text 
                     (video_id, img_url, text, coordinates, confidence)
                     VALUES (%s, %s, %s, %s, %s)
-                """, (video_db_id[0], img_url, None, None, None))
+                """, (img_id[0], img_url, None, None, None))
                 continue
             img_df = pd.DataFrame(result, columns=['bbox', 'text', 'conf'])
             img_df['img_name'] = os.path.basename(img_path)
@@ -238,7 +281,7 @@ def read_text_from_thumbnails(cursor, conn):
                 INSERT INTO thumbnail_text 
                 (video_id, img_url, text, coordinates, confidence)
                 VALUES (%s, %s, %s, %s, %s)
-            """, (video_db_id[0], img_url, None, None, None))
+            """, (img_id[0], img_url, None, None, None))
         except (IOError, SyntaxError, FileNotFoundError) as e:
             print(f"Skipping corrupted or missing image: {img_path} - {e}")
 

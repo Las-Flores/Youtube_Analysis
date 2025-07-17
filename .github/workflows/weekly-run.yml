@@ -10,7 +10,7 @@ on:
 jobs:
   run-code:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     steps:
       - name: Checkout repository
@@ -24,13 +24,25 @@ jobs:
       - name: Cache pip dependencies
         uses: actions/cache@v4
         with:
-          path: ~/.cache/pip
+          path: 
+                ~/.cache/pip
+                ${{ env.THUMBNAIL_DIR }}  
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
-
+            
+        name: Cache thumbnails to avoid re-downloads
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.THUMBNAIL_DIR }}
+          key: ${{ runner.os }}-thumbs-${{ hashFiles('.github/workflows/*.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-thumb
+            -
       - name: Install dependencies
         run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1 libtiff5  
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
@@ -59,3 +71,11 @@ jobs:
         if: failure()
         run: |
           echo "::error::Job failed. Check the logs for details."
+
+     -  name: Commit updated thumbnails (if new ones added)
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git add ${{ env.THUMBNAIL_DIR }}
+          git commit -m "Update thumbnails [skip ci]" || echo "No thumbnail changes"
+          git push || echo "No changes to push"
