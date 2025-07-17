@@ -8,6 +8,7 @@ import easyocr
 from PIL import Image
 import numpy as np
 import pandas as pd
+from io import BytesIO
 import json
 
 def scraping_data(youtube, queries, order, amount, publishedAfter, cursor, conn):
@@ -236,7 +237,7 @@ def install_thumbnails(videos, max_retries=3):
             print(f"- Video ID: {vid}")
     
     return failed_downloads
-    
+
 def read_text_from_thumbnails(cursor, conn):
     reader = easyocr.Reader(['en'], gpu=False, verbose=False)
     dfs = []
