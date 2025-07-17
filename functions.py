@@ -197,42 +197,64 @@ def install_thumbnails(videos):
 def read_text_from_thumbnails(cursor, conn):
     reader = easyocr.Reader(['en'], gpu=False, verbose=False)
     dfs = []
+
+    cursor.execute("SELECT DISTINCT video_id FROM thumbnail_text")
+    existing_videos = {row[0] for row in cursor.fetchall()}
+
     for img in os.listdir('thumbnails'):
         video_id = os.path.splitext(img)[0]
         img_url = f'https://i.ytimg.com/vi/{video_id}/hqdefault.jpg'
         img_path = f'thumbnails/{img}'
+
         cursor.execute("""
             SELECT id FROM videos WHERE thumbnail_url = %s
         """, (img_url,))
         img_id = cursor.fetchone()
+        if not img_id or img_id[0] in existing_videos:
+            continue
         try:
             img = Image.open(img_path)
             img_copy = img.copy()
             img_copy.verify()
             result = reader.readtext(np.array(img))
             result = [r for r in result if r[2] >= 0.5]
+            if not result:  # If OCR found nothing
+                # Insert a record indicating no text was found
+                cursor.execute("""
+                    INSERT INTO thumbnail_text 
+                    (video_id, img_url, text, coordinates, confidence)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (video_db_id[0], img_url, None, None, None))
+                continue
             img_df = pd.DataFrame(result, columns=['bbox', 'text', 'conf'])
             img_df['img_name'] = os.path.basename(img_path)
             img_df['img_url'] = img_url
             img_df['video_id'] = img_id[0] if img_id else None
             dfs.append(img_df)
+        except Exception as ocr_error:
+            print(f"OCR failed for {img_path}: {ocr_error}")
+            # Insert failure record
+            cursor.execute("""
+                INSERT INTO thumbnail_text 
+                (video_id, img_url, text, coordinates, confidence)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (video_db_id[0], img_url, None, None, None))
         except (IOError, SyntaxError, FileNotFoundError) as e:
             print(f"Skipping corrupted or missing image: {img_path} - {e}")
+
+
     if dfs:
         thumbnails = pd.concat(dfs, ignore_index=True)
-    else:
-        thumbnails = pd.DataFrame()  # or handle accordingly
-
-    for _, row in thumbnails.iterrows():
-        try:
-            bbox_array = np.array(row['bbox'])
-            bbox_json = json.dumps(bbox_array.tolist())            
-            cursor.execute("""
-                INSERT INTO thumbnail_text (video_id, img_url, text, coordinates, confidence)
-                VALUES (%s, %s, %s, %s, %s)
-            """, (row['video_id'], row['img_url'], row['text'], bbox_json, row['conf']))
-        except Exception as e:
-            print(f"Error inserting row: {e}")
-            print(f"Problematic bbox: {row['bbox']}")
-        continue 
+        for _, row in thumbnails.iterrows():
+            try:
+                bbox_array = np.array(row['bbox'])
+                bbox_json = json.dumps(bbox_array.tolist())            
+                cursor.execute("""
+                    INSERT INTO thumbnail_text 
+                    (video_id, img_url, text, coordinates, confidence)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (row['video_id'], row['img_url'], row['text'], bbox_json, row['conf']))
+            except Exception as e:
+                print(f"Error inserting row: {e}")
+    
     conn.commit()
