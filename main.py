@@ -25,7 +25,7 @@ youtube = build('youtube', 'v3', developerKey=os.getenv("API_KEY"))
 #How many videos per query are going to be scraped
 #How old (in days) the videos should maximally be
 queries = ['data science', 'data analysis', 'data engineering', 'data scientist', 'data analyst', 'data engineer', 'machine learning']
-order = 'relevance' 
+order = 'viewCount' 
 amount = 50
 publishedAfter = 30 
 videos = scraping_data(youtube=youtube, queries=queries, order=order, amount=amount, publishedAfter=publishedAfter, cursor=cursor, conn=conn)
