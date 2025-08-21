@@ -15,9 +15,10 @@ The purpose of this project is to analyse youtube content and predict trends. Th
 
 ### Technologies
 * Python
-* MySql, AWS RDS
+* MySQL
+* AWS RDS, Github Actions
 * Pandas, jupyter, scikit learn
-* 
+
 
 ## Needs of this project
 
